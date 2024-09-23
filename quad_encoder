@@ -1,4 +1,3 @@
-// Define pins for the encoder channels
 const int encoderPinA = A0; // Channel A connected to analog pin A0
 const int encoderPinB = A1; // Channel B connected to analog pin A1
 
@@ -6,11 +5,16 @@ volatile int encoderPos = 0;  // Position of the encoder
 volatile bool direction = true; // true = CW, false = CCW
 
 // Threshold for detecting high/low states from analog input
-const int threshold = 512; // Adjust based on your circuit and lighting conditions
-
+const int thresholdVoltageA = 4.96; // Adjust based on your circuit and lighting conditions
+const int thresholdVoltageB = 1.50;
 // Variables to store previous states
-int prevStateA = 0;
-int prevStateB = 0;
+float prevStateA = 0;
+float prevStateB = 0;
+
+float analogToDigital(float state) {
+  float volts = state * (5.0/1023.0);
+  return volts;
+}
 
 void setup() {
   // Serial communication for debugging
@@ -18,20 +22,28 @@ void setup() {
 
   // Initial analog readings for channels A and B
   prevStateA = analogRead(encoderPinA);
+  prevStateA = analogToDigital(prevStateA);
   prevStateB = analogRead(encoderPinB);
+  prevStateB = analogToDigital(prevStateB);
 }
 
 void loop() {
   // Read the analog voltage from both channels
   int stateA = analogRead(encoderPinA);
+  float stateAVoltage = analogToDigital(stateA);
   int stateB = analogRead(encoderPinB);
+  float stateBVoltage = analogToDigital(stateB);
 
   // Compare analog values to threshold to determine high or low states
-  bool aState = (stateA > threshold);
-  bool bState = (stateB > threshold);
+  bool aState = (stateAVoltage > thresholdVoltageA);
+  // Serial.println("Voltage A ");
+  // Serial.print(stateAVoltage);
+  // Serial.println("Voltage B ");
+  // Serial.print(stateBVoltage);
+  bool bState = (stateBVoltage > thresholdVoltageB);
 
   // Detect a change in Channel A
-  if (aState != (prevStateA > threshold)) {
+  if (aState != (prevStateA > thresholdVoltageA)) {
     // Channel A state has changed, check the state of Channel B
     if (bState) {
       encoderPos++;
@@ -43,7 +55,7 @@ void loop() {
   }
 
   // Detect a change in Channel B
-  if (bState != (prevStateB > threshold)) {
+  if (bState != (prevStateB > thresholdVoltageB)) {
     // Channel B state has changed, check the state of Channel A
     if (aState) {
       encoderPos--;
@@ -55,8 +67,8 @@ void loop() {
   }
 
   // Update previous states
-  prevStateA = stateA;
-  prevStateB = stateB;
+  prevStateA = stateAVoltage;
+  prevStateB = stateBVoltage;
 
   // Print encoder position and direction
   Serial.print("Position: ");
