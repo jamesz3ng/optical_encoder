@@ -1,0 +1,72 @@
+// Define pins for the encoder channels
+const int encoderPinA = A0; // Channel A connected to analog pin A0
+const int encoderPinB = A1; // Channel B connected to analog pin A1
+
+volatile int encoderPos = 0;  // Position of the encoder
+volatile bool direction = true; // true = CW, false = CCW
+
+// Threshold for detecting high/low states from analog input
+const int threshold = 512; // Adjust based on your circuit and lighting conditions
+
+// Variables to store previous states
+int prevStateA = 0;
+int prevStateB = 0;
+
+void setup() {
+  // Serial communication for debugging
+  Serial.begin(9600);
+
+  // Initial analog readings for channels A and B
+  prevStateA = analogRead(encoderPinA);
+  prevStateB = analogRead(encoderPinB);
+}
+
+void loop() {
+  // Read the analog voltage from both channels
+  int stateA = analogRead(encoderPinA);
+  int stateB = analogRead(encoderPinB);
+
+  // Compare analog values to threshold to determine high or low states
+  bool aState = (stateA > threshold);
+  bool bState = (stateB > threshold);
+
+  // Detect a change in Channel A
+  if (aState != (prevStateA > threshold)) {
+    // Channel A state has changed, check the state of Channel B
+    if (bState) {
+      encoderPos++;
+      direction = true;  // Clockwise (CW)
+    } else {
+      encoderPos--;
+      direction = false; // Counterclockwise (CCW)
+    }
+  }
+
+  // Detect a change in Channel B
+  if (bState != (prevStateB > threshold)) {
+    // Channel B state has changed, check the state of Channel A
+    if (aState) {
+      encoderPos--;
+      direction = false; // Counterclockwise (CCW)
+    } else {
+      encoderPos++;
+      direction = true;  // Clockwise (CW)
+    }
+  }
+
+  // Update previous states
+  prevStateA = stateA;
+  prevStateB = stateB;
+
+  // Print encoder position and direction
+  Serial.print("Position: ");
+  Serial.print(encoderPos);
+  Serial.print(" Direction: ");
+  if (direction) {
+    Serial.println("Clockwise (CW)");
+  } else {
+    Serial.println("Counterclockwise (CCW)");
+  }
+
+  delay(100);  // Update every 100 ms
+}
