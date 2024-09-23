@@ -1,0 +1,20 @@
+int sensorValue = A0;
+int newSensorValue = A1;
+void setup() {
+// put your setup code here, to run once:
+Serial.begin(9600);
+}
+void loop() {
+// put your main code here, to run repeatedly:
+float volts = analogRead(sensorValue)*(5.0/1023.0); //pin value is a 10-bit byte
+float newVolt = analogRead(newSensorValue)*(5.0/1023.0); //pin value is a 10-bit byte
+
+// Serial.print("analogADC ");
+// Serial.print(analogRead(sensorValue));
+// Serial.print(" ");
+// Serial.print("A0 = ");
+// Serial.println(volts);
+Serial.print("NEW VOLTAGE");
+Serial.println(newVolt);
+delay(100);
+}
