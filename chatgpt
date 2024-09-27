@@ -1,0 +1,91 @@
+const int encoderPinA = A0; // Channel A connected to analog pin A0
+const int encoderPinB = A1; // Channel B connected to analog pin A1
+
+volatile int encoderPos = 0;  // Position of the encoder
+volatile bool direction = true; // true = CW, false = CCW
+
+// Adjusted threshold voltages based on expected sensor readings
+const float thresholdVoltageA = 2.5; // Midpoint voltage for Channel A
+const float thresholdVoltageB = 2.5; // Midpoint voltage for Channel B
+
+// Variables to store previous boolean states
+bool prevAState = false;
+bool prevBState = false;
+
+float analogToDigital(int state) {
+  float volts = state * (5.0 / 1023.0);
+  return volts;
+}
+
+void setup() {
+  // Serial communication for debugging
+  Serial.begin(9600);
+
+  // Initial analog readings for channels A and B
+  int initialA = analogRead(encoderPinA);
+  float initialAVoltage = analogToDigital(initialA);
+  prevAState = (initialAVoltage > thresholdVoltageA);
+
+  int initialB = analogRead(encoderPinB);
+  float initialBVoltage = analogToDigital(initialB);
+  prevBState = (initialBVoltage > thresholdVoltageB);
+}
+
+void loop() {
+  // Read the analog voltage from both channels
+  int stateA = analogRead(encoderPinA);
+  float stateAVoltage = analogToDigital(stateA);
+  int stateB = analogRead(encoderPinB);
+  float stateBVoltage = analogToDigital(stateB);
+
+  // Convert analog voltages to digital signals
+  bool aState = (stateAVoltage > thresholdVoltageA);
+  bool bState = (stateBVoltage > thresholdVoltageB);
+
+  // Combine the two states into a 2-bit number
+  int currentState = (aState << 1) | bState;
+  int prevState = (prevAState << 1) | prevBState;
+
+  // Determine the movement based on state transitions
+  int movement = 0;
+  if (currentState != prevState) {
+    int index = (prevState << 2) | currentState;
+    switch (index) {
+      case 0b0001:
+      case 0b0111:
+      case 0b1110:
+      case 0b1000:
+        movement = 1; // Clockwise
+        direction = true;
+        break;
+      case 0b0010:
+      case 0b0100:
+      case 0b1101:
+      case 0b1011:
+        movement = -1; // Counter-clockwise
+        direction = false;
+        break;
+      default:
+        // No valid movement detected (possible noise)
+        movement = 0;
+        break;
+    }
+    encoderPos += movement;
+  }
+
+  // Update previous states
+  prevAState = aState;
+  prevBState = bState;
+
+  // Print encoder position and direction
+  Serial.print("Position: ");
+  Serial.print(encoderPos);
+  Serial.print(" Direction: ");
+  if (direction) {
+    Serial.println("Clockwise (CW)");
+  } else {
+    Serial.println("Counter-clockwise (CCW)");
+  }
+
+  delay(10);  // Short delay for sensor stabilization
+}
