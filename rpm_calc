@@ -21,7 +21,7 @@ int exitt = 0;       // Main loop exit condition
 // Optical encoder variables
 int s_optical = 0;     // Counts for RPM display every 5s
 int s_optical_2 = 0;   // Counts for RPM calculation for PI controller
-const int CPR_optical = 228; // Counts per revolution for optical encoder
+const int CPR_optical = 64; // Counts per revolution for optical encoder
 
 const int encoderPinA = A0; // Channel A connected to analog pin A0
 const int encoderPinB = A1; // Channel B connected to analog pin A1
