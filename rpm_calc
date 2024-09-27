@@ -1,0 +1,239 @@
+int b=0; //reading the time for main loop to be run for 15s
+int c=0; //memory for the time in mainloop
+
+float s=0;   //built-in encoder counts
+float s_2;   //built-in encoder counts for RPM calculation for PI controler
+
+float rpmm;  //rpm obtained each 5s from built-in encoder
+
+int s1=0;    //built-in encoder chanel one outpot
+int s2=0;    //built-in encoder chanel two outpot
+int r=0;     //repetition indicator for reading counts of bult-in encoder
+int s2m=0;   //memory of built-in encoder chanel two outpot
+int directionm=0;  //indicator for direction read by built-in encoder
+int dirm;          //indicator for direction read by built-in encode
+int RPM;           //Commanded RPM
+
+int exitt=0;       //mainloop exit condition
+
+int s_optical = 0;     // Counts for RPM display every 5s
+int s_optical_2 = 0;   // Counts for RPM calculation for PI controller
+const int CPR_optical = 228; // Counts per revolution for optical encoder (adjust if necessary)
+
+const int encoderPinA = A0; // Channel A connected to analog pin A0
+const int encoderPinB = A1; // Channel B connected to analog pin A1
+
+volatile int encoderPos = 0;  // Position of the encoder
+volatile bool direction = true; // true = CW, false = CCW
+
+// Adjusted threshold voltages based on expected sensor readings
+const float thresholdVoltageA = 1; // Midpoint voltage for Channel A
+const float thresholdVoltageB = 1; // Midpoint voltage for Channel B
+
+float rpmm_optical;    // RPM obtained each 100ms from optical encoder
+float rpm_optical;     // RPM obtained each 5s from optical encoder
+                                                                           
+// Variables to store previous boolean states
+bool prevAState = false;
+bool prevBState = false;
+
+
+
+float ctrl;      //PI controller outpot
+float kp=.4;     //proportional gain of PI controller 
+float ki=.01;    //integral gain of PI controller
+float eri;       //integral of error of PI controller
+
+int repc=1;      //repetition condition of PI controller
+int t0;          //memory of time for the Purpose of displaying the results
+int repeat=0;    //repeat indicator to only let the memory of time for the Purpose of displaying the results be updated once
+
+float analogToDigital(int state) {
+  float volts = state * (5.0 / 1023.0);
+  return volts;
+}
+
+void setup() {
+  // put your setup code here, to run on
+  Serial.begin(250000);                  //Baud rate of communication 
+
+  // Initial analog readings for channels A and B
+  int initialA = analogRead(encoderPinA);
+  float initialAVoltage = analogToDigital(initialA);
+  prevAState = (initialAVoltage > thresholdVoltageA);
+
+  int initialB = analogRead(encoderPinB);
+  float initialBVoltage = analogToDigital(initialB);
+  prevBState = (initialBVoltage > thresholdVoltageB);
+
+  Serial.println("Enter the desired RPM.");  
+  
+  while (Serial.available() == 0)   
+  { 
+    //Wait for user input
+  }  
+  
+   RPM = Serial.readString().toFloat(); //Reading the Input string from Serial port.
+  if (RPM<0)
+  {
+    analogWrite(3,255);                 //changing the direction of motor's rotation
+  }
+  RPM=abs(RPM);
+  
+}
+
+
+void loop() {
+  while ((b >= c) && (b <= (c + 15500)) && exitt == 0) {
+    // change code begin
+
+    // Read the analog voltage from both channels
+    int stateA = analogRead(encoderPinA);
+    float stateAVoltage = analogToDigital(stateA);
+    int stateB = analogRead(encoderPinB);
+    float stateBVoltage = analogToDigital(stateB);
+
+    // Convert analog voltages to digital signals
+    bool aState = (stateAVoltage > thresholdVoltageA);
+    bool bState = (stateBVoltage > thresholdVoltageB);
+
+    // Combine the two states into a 2-bit number
+    int currentState = (aState << 1) | bState;
+    int prevState = (prevAState << 1) | prevBState;
+
+    // Determine the movement based on state transitions
+    int movement = 0;
+    if (currentState != prevState) {
+      int index = (prevState << 2) | currentState;
+      switch (index) {
+        case 0b0001:
+        case 0b0111:
+        case 0b1110:
+        case 0b1000:
+          movement = 1; // Clockwise
+          direction = true;
+          break;
+        case 0b0010:
+        case 0b0100:
+        case 0b1101:
+        case 0b1011:
+          movement = -1; // Counter-clockwise
+          direction = false;
+          break;
+        default:
+          // No valid movement detected (possible noise)
+          movement = 0;
+          break;
+      }
+      encoderPos += movement;
+
+      // Increment optical encoder counts
+      s_optical += abs(movement);     // Counts for RPM display every 5s
+      s_optical_2 += abs(movement);   // Counts for RPM calculation for PI controller
+    }
+
+    // Update previous states
+    prevAState = aState;
+    prevBState = bState;
+
+    // change code stop
+
+    delay(10);  // Short delay for sensor stabilization
+
+    b = millis();    // Reading time
+
+    // PI Controller Logic
+    if (b % 13 == 0 && repc == 1) {
+      eri = ki * (RPM - rpmm) + eri;
+      ctrl = 50 + kp * (RPM - rpmm) + eri;
+      analogWrite(6, ctrl);
+      repc = 0;
+    }
+    if (b % 13 == 1) {
+      repc = 1;
+    }
+
+    // Built-in Encoder Reading
+    s1 = digitalRead(7);           // Reading Channel 1 of built-in encoder
+    s2 = digitalRead(8);           // Reading Channel 2 of built-in encoder
+    if (s1 != s2 && r == 0) {
+      s = s + 1;      // Counters for RPM displayed every 5s
+      s_2 = s_2 + 1;  // Counters for RPM used in PI controller
+      r = 1;          // Indicator to prevent multiple counts
+    }
+    if (s1 == s2 && r == 1) {
+      s = s + 1;
+      s_2 = s_2 + 1;
+      r = 0;
+    }
+
+    // Timing Logic for RPM Calculations
+    b = millis();  // Updating time
+    if (b % 100 <= 1 && repeat == 0) {
+      t0 = b;       // Storing the current time once
+      repeat = 1;
+    }
+
+    if (b % 100 == 0) {
+      // Calculate RPM from built-in encoder every 100ms
+      rpmm = (s_2 / (2 * 114)) * 600;  // RPM calculation
+      s_2 = 0;  // Resetting the counters of PI controller RPM meter
+
+      // Calculate RPM from optical encoder every 100ms
+      rpmm_optical = (s_optical_2 / CPR_optical) * 600;  // RPM calculation
+      s_optical_2 = 0;  // Resetting the counters
+
+      // Optionally, you can use rpmm_optical in your PI controller
+      // For example: eri = ki * (RPM - rpmm_optical) + eri;
+
+      if ((b - t0) % 5000 == 0) {
+        // Calculate RPM from built-in encoder every 5s
+        float rpm_builtin = (s / (2 * 114)) * 12;  // RPM over 5s
+        s = 0;  // Resetting the counter
+
+        // Calculate RPM from optical encoder every 5s
+        rpm_optical = (s_optical / CPR_optical) * 12;  // RPM over 5s
+        s_optical = 0;  // Resetting the counter
+
+        // Print the RPMs and Error
+        Serial.println();
+        Serial.print("RPM from built-in encoder: ");
+        Serial.println(rpm_builtin);
+
+        Serial.print("RPM from optical quadrature encoder: ");
+        Serial.println(rpm_optical);
+
+        Serial.print("Error (Optical - Built-in): ");
+        Serial.println(rpm_optical - rpm_builtin);
+        Serial.println();
+
+        directionm = 0;
+      }
+      delay(100);
+    }
+
+    // Direction Detection for Built-in Encoder
+    if ((s1 == HIGH) && (s2 == HIGH) && (s2m == LOW)) {
+      directionm = directionm + 1;
+    }
+
+    if ((s1 == LOW) && (s2 == LOW) && (s2m == HIGH)) {
+      directionm = directionm + 1;
+    }
+
+    s2m = s2;  // Memory of the previous built-in encoder channel 2
+
+    if (directionm > 100) {
+      dirm = 0;
+    }
+    if (directionm < 20) {
+      dirm = 1;
+    }
+
+    b = millis();  // Updating time
+  }
+
+  analogWrite(6, 0);  // Turning off the motor
+  exitt = 1;          // Prevent the motor from running after 15s
+}                     //changing the exit condition to prevent the motor to run after 15s
+}
