@@ -14,17 +14,17 @@ int finish = 0;  //finish indicator
 int rep = 1;     //Repetition indicator
 
 // Defining analog pins
-float voltageThreshold = 2;
-int tr_one = A0;  // Most significant bit
+float voltageThreshold = 2;  //2
+int tr_one = A0;               // Most significant bit
 int tr_two = A1;
 int tr_three = A2;
 int tr_four = A3;
 int tr_five = A4;  // Least significant bit
-int voltage_one;
-int voltage_two;
-int voltage_three;
-int voltage_four;
-int voltage_five;
+double voltage_one;
+double voltage_two;
+double voltage_three;
+double voltage_four;
+double voltage_five;
 bool state_one = true;
 bool state_two = true;
 bool state_three = true;
@@ -43,17 +43,21 @@ double home_angle;
 double zero_angle;
 double current_angle;
 
-float analogToVoltage(float analogReading){
-  float volts = (analogReading)*(5.0/1023.0);
+int gray;
+
+
+
+float analogToVoltage(float analogReading) {
+  float volts = (analogReading) * (5.0 / 1023.0);
   return volts;
 }
 
 void updateAngle() {
-  float voltage_one = analogToVoltage(analogRead(tr_one));
-  float voltage_two = analogToVoltage(analogRead(tr_two));
-  float voltage_three = analogToVoltage(analogRead(tr_three));
-  float voltage_four = analogToVoltage(analogRead(tr_four));
-  float voltage_five = analogToVoltage(analogRead(tr_five));
+  voltage_one = analogToVoltage(analogRead(tr_one));
+  voltage_two = analogToVoltage(analogRead(tr_two));
+  voltage_three = analogToVoltage(analogRead(tr_three));
+  voltage_four = analogToVoltage(analogRead(tr_four));
+  voltage_five = analogToVoltage(analogRead(tr_five));
 
   // Grey code
   state_one = (voltage_one > voltageThreshold);
@@ -62,26 +66,28 @@ void updateAngle() {
   state_four = (voltage_four > voltageThreshold);
   state_five = (voltage_five > voltageThreshold);
   // Get binary
-  bool bit_one = state_one;
-  bool bit_two = (state_two ^ bit_one);
-  bool bit_three = (state_three ^ bit_two);
-  bool bit_four = (state_four ^ bit_three);
-  bool bit_five = (state_five ^ bit_four);
+  bit_one = state_one;
+  bit_two = (state_two ^ bit_one);
+  bit_three = (state_three ^ bit_two);
+  bit_four = (state_four ^ bit_three);
+  bit_five = (state_five ^ bit_four);
 
   decimal_position = (bit_five + bit_four * 2 + bit_three * 4 + bit_two * 8 + bit_one * 16);
-  angle = (decimal_position * 360.0) / 32.0;
+  angle = decimal_position * (360.0 / 32.0);
+
+  gray = (state_five + state_four * 2 + state_three * 4 + state_two * 8 + state_one * 16);
 }
 
 
 
 void setup() {
 
-  Serial.begin(250000);  //Baud rate of communication
+  Serial.begin(115200);  //Baud rate of communication
   Serial.println("Enter the desired rotation in degree.");
 
   updateAngle();
   home_angle, zero_angle = angle;
-  
+
   while (Serial.available() == 0)  //Obtaining data from user
   {
     //Wait for user input
@@ -102,7 +108,65 @@ float ki = .02;            //integral gain of PI
 void loop() {
   // put your main code here, to run repeatedly:
 
-  
+  //random test
+  updateAngle();
+  Serial.print("Angle:  ");
+  Serial.println(angle);
+  //Serial.println(char(167));
+  double previous_angle = angle;
+  while (1) {
+    updateAngle();
+    if (previous_angle != angle) {
+      Serial.print("Angle:  ");
+      Serial.println(angle);
+      //Serial.println(char(167));
+      previous_angle = angle;
+    }
+    delay(2);
+  }
+  // updateAngle();
+  // Serial.print("decimal:  ");
+  // Serial.println(decimal_position);
+  // //Serial.println(char(167));
+  // int previous_dec = decimal_position;
+  // while (1) {
+  //   updateAngle();
+  //   if (previous_dec != decimal_position) {
+  //     Serial.print("decimal:  ");
+  //     Serial.println(decimal_position);
+  //     //Serial.println(char(167));
+  //     previous_dec = decimal_position;
+  //   }
+  //   delay(2);
+  // }
+
+
+
+  // updateAngle();
+  // Serial.print("gray code:  ");
+  // Serial.println(gray);
+
+  // int previous_gray = gray;
+  // while (1) {
+  //   updateAngle();
+  //   if (previous_gray != gray) {
+  //     // Serial.print("gray code:  ");
+  //     // Serial.println(gray);
+  //     // Serial.println("");
+  //     Serial.print(state_one);
+  //     Serial.print(state_two);
+  //     Serial.print(state_three);
+  //     Serial.print(state_four);
+  //     Serial.println(state_five);
+  //     previous_gray = gray;
+  //   }
+  //   delay(2);
+  // }
+
+
+
+
+
 
 
   t = millis();                       //reading time
@@ -157,7 +221,6 @@ void loop() {
 
     updateAngle();
     current_angle = angle;
-
 
 
     Serial.print("shaft possition from optical absolute sensor from home position: ");
