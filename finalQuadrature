@@ -1,3 +1,5 @@
+// To do: voltage threshold for separate channels
+
 int b=0; //reading the time for main loop to be run for 15s
 int c=0; //memory for the time in mainloop
 
@@ -21,7 +23,7 @@ int quadRepeat = 0;
 
 int channelA = A1;
 int channelB = A0;
-float voltageThreshold = 1.75;
+float voltageThreshold = 2;
 bool stateA = true;
 bool stateB = true;
 bool prevStateB = true;
