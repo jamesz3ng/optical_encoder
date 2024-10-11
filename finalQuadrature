@@ -21,9 +21,10 @@ int exitt=0;       //mainloop exit condition
 volatile float encoderPos = 0.00;  // Position of the encoder
 int quadRepeat = 0; 
 
-int channelA = A1;
-int channelB = A0;
-float voltageThreshold = 2;
+int channelA = A3;
+int channelB = A1;
+float voltageThreshold = 0.85; //1.00;
+float voltageThresholdB = 1.9;
 bool stateA = true;
 bool stateB = true;
 bool prevStateB = true;
@@ -54,7 +55,7 @@ void setup() {
   float voltageA = analogToVoltage(analogRead(channelA));
   float voltageB = analogToVoltage(analogRead(channelB));
   prevStateA = (voltageA > voltageThreshold);
-  prevStateB = (voltageB > voltageThreshold);
+  prevStateB = (voltageB > voltageThresholdB);
 
   Serial.println("Enter the desired RPM.");  
   while (Serial.available() == 0)   
@@ -217,11 +218,11 @@ if((stateA==false)&&(stateB==false)&&(prevStateB==true))
 // Serial.print("Direction thingy: ");
 // Serial.println(quadDirectionMemory);
 
-if (quadDirectionMemory>60)
+if (quadDirectionMemory>77)
 {
   quadDirM=0;
 }
-if (quadDirectionMemory<25)
+if (quadDirectionMemory<20)
 {
   quadDirM=1;
 }
