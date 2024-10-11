@@ -14,7 +14,14 @@ int finish = 0;  //finish indicator
 int rep = 1;     //Repetition indicator
 
 // Defining analog pins
-float voltageThreshold = 2;  //2
+float voltageThreshold5 = 2.25;
+float voltageThreshold4 = 0.85; //1.00;
+float voltageThreshold3 = 1.75;  //2
+float voltageThreshold2 = 1.75;
+float voltageThreshold1 = 0.9;  //2
+
+
+
 int tr_one = A0;               // Most significant bit
 int tr_two = A1;
 int tr_three = A2;
@@ -60,11 +67,11 @@ void updateAngle() {
   voltage_five = analogToVoltage(analogRead(tr_five));
 
   // Grey code
-  state_one = (voltage_one > voltageThreshold);
-  state_two = (voltage_two > voltageThreshold);
-  state_three = (voltage_three > voltageThreshold);
-  state_four = (voltage_four > voltageThreshold);
-  state_five = (voltage_five > voltageThreshold);
+  state_one = (voltage_one > voltageThreshold1);
+  state_two = (voltage_two > voltageThreshold1);
+  state_three = (voltage_three > voltageThreshold1);
+  state_four = (voltage_four > voltageThreshold1);
+  state_five = (voltage_five > voltageThreshold5);
   // Get binary
   bit_one = state_one;
   bit_two = (state_two ^ bit_one);
@@ -109,21 +116,23 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   //random test
-  updateAngle();
-  Serial.print("Angle:  ");
-  Serial.println(angle);
-  //Serial.println(char(167));
-  double previous_angle = angle;
-  while (1) {
-    updateAngle();
-    if (previous_angle != angle) {
-      Serial.print("Angle:  ");
-      Serial.println(angle);
-      //Serial.println(char(167));
-      previous_angle = angle;
-    }
-    delay(2);
-  }
+  // updateAngle();
+  // Serial.print("Angle:  ");
+  // Serial.println(angle);
+  // //Serial.println(char(167));
+  // double previous_angle = angle;
+  // while (1) {
+  //   updateAngle();
+  //   if (previous_angle != angle) {
+  //     Serial.print("Angle:  ");
+  //     Serial.println(angle);
+  //     //Serial.println(char(167));
+  //     previous_angle = angle;
+  //   }
+  //   delay(2);
+  // }
+
+
   // updateAngle();
   // Serial.print("decimal:  ");
   // Serial.println(decimal_position);
