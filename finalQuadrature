@@ -21,8 +21,8 @@ int exitt=0;       //mainloop exit condition
 volatile float encoderPos = 0.00;  // Position of the encoder
 int quadRepeat = 0; 
 
-int channelA = A3;
-int channelB = A1;
+int channelA = A1;
+int channelB = A3;
 float voltageThreshold = 0.85; //1.00;
 float voltageThresholdB = 1.9;
 bool stateA = true;
@@ -54,8 +54,8 @@ void setup() {
 
   float voltageA = analogToVoltage(analogRead(channelA));
   float voltageB = analogToVoltage(analogRead(channelB));
-  prevStateA = (voltageA > voltageThreshold);
-  prevStateB = (voltageB > voltageThresholdB);
+  // prevStateA = (voltageA > voltageThreshold);
+  // prevStateB = (voltageB > voltageThresholdB);
 
   Serial.println("Enter the desired RPM.");  
   while (Serial.available() == 0)   
@@ -87,6 +87,11 @@ while ((b>=c) && (b<=(c+15500)) && exitt==0)   //let the main loop to be run for
 
   stateA = (voltageA > voltageThreshold);
   stateB = (voltageB > voltageThreshold);
+
+  //  Serial.print("StateA: "); 
+  //  Serial.println(stateA);
+  //  Serial.print("StateB: ");
+  //  Serial.println(stateB);
   
   if (b%13==0 && repc==1)                   //PI controller
   {
@@ -220,11 +225,11 @@ if((stateA==false)&&(stateB==false)&&(prevStateB==true))
 
 if (quadDirectionMemory>77)
 {
-  quadDirM=0;
+  quadDirM=1;
 }
 if (quadDirectionMemory<20)
 {
-  quadDirM=1;
+  quadDirM=0;
 }
 
 prevStateB=stateB; 
