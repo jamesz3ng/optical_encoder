@@ -14,14 +14,20 @@ int finish = 0;  //finish indicator
 int rep = 1;     //Repetition indicator
 
 // Defining analog pins
-float voltageThreshold = 1.8;  //2
-float thresholdTwo = 0.75;
-float thresholdFour = 1.5;
+float voltageThreshold0 = 1.00;  //2
+float voltageThreshold1= 1.80;
+float voltageThreshold2 = 1.00;
+float voltageThreshold3 = 0.80;  //2
+float voltageThreshold4 = 1.80;
+
+
+
 int tr_one = A0;               // Most significant bit
 int tr_two = A1;
 int tr_three = A2;
 int tr_four = A3;
 int tr_five = A4;  // Least significant bit
+
 double voltage_one;
 double voltage_two;
 double voltage_three;
@@ -48,7 +54,6 @@ double current_angle;
 int gray;
 
 
-
 float analogToVoltage(float analogReading) {
   float volts = (analogReading) * (5.0 / 1023.0);
   return volts;
@@ -62,11 +67,11 @@ void updateAngle() {
   voltage_five = analogToVoltage(analogRead(tr_five));
 
   // Grey code
-  state_one = (voltage_one > voltageThreshold);
-  state_two = (voltage_two > thresholdTwo);
-  state_three = (voltage_three > voltageThreshold);
-  state_four = (voltage_four > thresholdFour);
-  state_five = (voltage_five > voltageThreshold);
+  state_one = (voltage_one > voltageThreshold0);
+  state_two = (voltage_two > voltageThreshold1);
+  state_three = (voltage_three > voltageThreshold2);
+  state_four = (voltage_four > voltageThreshold3);
+  state_five = (voltage_five > voltageThreshold4);
   // Get binary
   bit_one = state_one;
   bit_two = (state_two ^ bit_one);
@@ -81,7 +86,6 @@ void updateAngle() {
 }
 
 
-
 void setup() {
 
   Serial.begin(115200);  //Baud rate of communication
@@ -90,7 +94,7 @@ void setup() {
   updateAngle();
   home_angle, zero_angle = angle;
 
-  while (Serial.available())  //Obtaining data from user
+  while (Serial.available()== 0)  //Obtaining data from user
   {
     //Wait for user input
   }
@@ -109,6 +113,18 @@ float ki = .02;            //integral gain of PI
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // while(1) {
+
+
+
+  // // float voltageThreshold = 0.80;  //2
+  // voltage_one = analogToVoltage(analogRead(A2));
+  // state_one = (voltage_one > voltageThreshold2);
+  // Serial.print("State: ");
+  // Serial.println(state_one);
+  // }
+
 
   //random test
   // updateAngle();
@@ -163,7 +179,6 @@ void loop() {
   //   delay(2);
   // }
 
-
   t = millis();                       //reading time
   t0 = t;                             //sving the current time in memory
   while (t < t0 + 4000 && rep <= 10)  //let the code to ran for 4 seconds each with repetitions of 10
@@ -184,12 +199,8 @@ void loop() {
       delay(1);
     }
 
-
-
     sm1 = digitalRead(7);  //reading chanel 1
     sm2 = digitalRead(8);  //reading chanel 2
-
-
 
 
     if (sm1 != sm2 && r == 0) {  //counting the number changes for both chanels
@@ -202,8 +213,6 @@ void loop() {
     }
 
 
-
-
     t = millis();  //updating time
     finish = 1;    //cghanging finish indicator
   }
@@ -211,8 +220,6 @@ void loop() {
   if (finish == 1) {  //this part of the code is for displaying the result
     delay(500);       //half second delay
     rep = rep + 1;    // increasing the repetition indicator
-
-
 
     updateAngle();
     current_angle = angle;
