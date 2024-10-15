@@ -1,88 +1,51 @@
 float deg = 45;  // Rotation degree
 float s = 0;     //Encoder counts
-int sm1, sm2 = 0;     //Built-in chanel 1 & 2
+int sm1 = 0, sm2 = 0;     //Built-in chanel 1 & 2
 int r = 0;       //indicator for reading builtin encoder to avoid the reading redundancy
 float er, eri;        //Proportional and Integral error for PI controller
-int t, t0 = 0;   //time in ms & memory for time in ms
+int t = 0, t0 = 0;   //time in ms & memory for time in ms
 int finish = 0;  //finish indicator
 int rep = 1;     //Repetition indicator
 
-double home_angle, zero_angle, current_angle, previous_angle;
-int previous_dec, decimalValue;
+float home_angle, zero_angle, current_angle, previous_angle, error, volts;
+int previous_dec, decimalValue, decimal_position, voltage;
 
-#define ENCODER_CONVERSION (228.0 / 360.0)
-float Error;
+float kp = .6 * 90 / deg;  //proportional gain of PI
+float ki = .02;            //integral gain of PI
+float encoder_conversion = (228.0 / 360.0);
 
-float voltageThreshold[5] = {2.25, 1.45, 1.45, 1, 2}; // LSB to MSB
-int decimal_position;
-int gray[5] = {0};
-int previous_gray[5] = {0};
-
-int currentBits[5] = {0};
-bool previousBit = 0;
-
-float analogToVoltage(float analogReading) {
-  float volts = (analogReading) * (5.0 / 1023.0);
-  return volts;
-}
-
-int updateBit(int pin, float threshold, bool previousBit, int i) {
-  int voltage = analogToVoltage(analogRead(pin));             // Reads voltage
-  bool currentState = (voltage > threshold);                  // Checks whether the voltage indicates black (1) or white (0)
-  gray[4-i] = currentState;
-  return currentState ^ previousBit;                          // Returns the XOR of the current state and previous bit, resulting in a change only if there is a state transisiton
-}
-
-void updateAngle() {
-  for (int i = 0; i < 5; i++) {
-    currentBits[4-i] = updateBit(A0 + i, voltageThreshold[4-i], previousBit, i);   // Update currently read bit
-    previousBit = currentBits[4-i];                                           // Set current bit to previous bit for next iteration
-  }
-
-  decimalValue = 0;
-  for (int i = 0; i < 5; i++) { if (currentBits[i]) { decimalValue += (1 << i); } }   // If 1, add the corresponding power of two
-  
-  current_angle = decimalValue * (360.0 / 32.0);                                          // Get the current angle position
-}
-
+float voltageThreshold[5] = {2, 1, 1.45, 1.45, 2.25}; // MSB to LSB
+int gray[5] = {0}, previous_gray[5] = {0}, currentBits[5] = {0};
+bool previousBit, currentState;
 
 void setup() {
   Serial.begin(115200);                                         // Baud rate of communication 
-  Serial.println("Enter the desired rotation in degree.");  
 
   updateAngle();                                                // Update the current angle 
   home_angle, zero_angle = current_angle;
 
+  Serial.println("Enter the desired rotation in degree.");  
   while (Serial.available() == 0)  { }                          // Obtaining data from user
-
   deg = Serial.readString().toFloat();                          // Reading the Input string from Serial port.
   if (deg<0) { analogWrite(3,255); }                            // Change the direction of rotation by applying voltage to pin 3 of arduino
-  deg=abs(deg);                                                 // Convert to positive regardless of user inputed direction
+  deg= abs(deg);                                                // Convert to positive regardless of user inputed direction
 }
 
-
-float kp = .6 * 90 / deg;  //proportional gain of PI
-float ki = .02;            //integral gain of PI
-
-
 void loop() {
-  // put your main code here, to run repeatedly:
+  updateAngle();
 
   /* Continuously print angle when it changes */
-  updateAngle();
-  Serial.println("Angle:  " + String(current_angle) + char(167));
-  previous_angle = current_angle;
-  while (1) {
-    updateAngle();
-    if (previous_angle != current_angle) {
-      Serial.println("Angle:  " + String(current_angle) + char(167));
-      previous_angle = current_angle;
-    }
-    delay(2);
-  }
+  // Serial.println("Angle:  " + String(current_angle) + "°");
+  // previous_angle = current_angle;
+  // while (1) {
+  //   updateAngle();
+  //   if (previous_angle != current_angle) {
+  //     Serial.println("Angle:  " + String(current_angle) + "°");
+  //     previous_angle = current_angle;
+  //   } delay(2);
+  // }
 
   /* Continuously print decimal position when it changes */
-  // updateAngle();
   // Serial.println("decimal:  " + String(decimalValue));
   // previous_dec = decimalValue;
   // while (1) {
@@ -90,12 +53,10 @@ void loop() {
   //   if (previous_dec != decimalValue) {
   //     Serial.println("decimal:  " + String(decimalValue));
   //     previous_dec = decimalValue;
-  //   }
-  //   delay(2);
+  //   } delay(2);
   // }
 
   /* Continuosly print gray code when it changes */
-  // updateAngle();
   // Serial.print("Gray Code: ");
   // for (int i = 0; i < 5; i++) { Serial.print(gray[i]); }
   // Serial.println();
@@ -106,17 +67,40 @@ void loop() {
   //     Serial.print("Gray Code: ");
   //     for (int i = 0; i < 5; i++) { Serial.print(gray[i]); }
   //     Serial.println();
-  
   //     for (int i = 0; i < 5; i++) { previous_gray[i] = gray[i]; }
-  //   }
-  //   delay(2);
+  //   } delay(2);
   // }
 
   MotorMovement();
 }
 
+float analogToVoltage(float analogReading) {
+  volts = (analogReading) * (5.0 / 1023.0);
+  return volts;
+}
+
+int updateBit(int pin, float threshold, bool previousBit, int i) {
+  voltage = analogToVoltage(analogRead(pin));             // Reads voltage
+  currentState = (voltage > threshold);                  // Checks whether the voltage indicates black (1) or white (0)
+  gray[i] = currentState;
+  if (i == 0) { return currentState; }
+  else {return currentState ^ previousBit; }             // Returns the XOR of the current state and previous bit, resulting in a change only if there is a state transisiton
+}
+
+void updateAngle() {
+  for (int i = 0; i < 5; i++) {
+    currentBits[i] = updateBit(A0 + i, voltageThreshold[i], previousBit, i);    // Update currently read bit, A0 is MSB
+    previousBit = currentBits[i];                                               // Set current bit to previous bit for next iteration
+  }
+
+  decimalValue = 0;
+  for (int i = 0; i < 5; i++) { if (currentBits[i]) { decimalValue += (1 << (4-i)); } }   // If 1, add the corresponding power of two
+  
+  current_angle = decimalValue * (360.0 / 32.0);                                          // Get the current angle position
+}
+
 bool gray_equal(int *array1, int *array2) {
-    for (size_t i = 0; i < 5; i++) { if (array1[i] != array2[i]) { return false; } }
+    for (int i = 0; i < 5; i++) { if (array1[i] != array2[i]) { return false; } }
     return true;
 }
 
@@ -125,13 +109,13 @@ void MotorMovement () {
   t0 = t;                                         // saving the current time in memory
   while (t < t0 + 4000 && rep <= 10) {            // let the code to ran for 4 seconds each with repetitions of 10
     if (t % 10 == 0)  {                           // PI controller that runs every 10ms
-      if (s < deg * ENCODER_CONVERSION) {         // Check if encoder counts are less than target
-        er = deg - s / ENCODER_CONVERSION;        // Calculate proportional error
+      if (s < deg * encoder_conversion) {         // Check if encoder counts are less than target
+        er = deg - s / encoder_conversion;        // Calculate proportional error
         eri = eri + er;                           // Update integral error
         analogWrite(6, kp * er + ki * eri); 	    // Write control signal to motor
       }
 
-      if (s >= deg * ENCODER_CONVERSION) {        // If the desired position is reached
+      if (s >= deg * encoder_conversion) {        // If the desired position is reached
         analogWrite(6, 0);                        // Stop the motor
         eri = 0;                                  // Reset integral
       }
@@ -147,17 +131,17 @@ void MotorMovement () {
     finish = 1;                                   // Changing finish indicator
   }
 
-  if (finish == 1) {                              // This part of the code is for displaying the result
+  if (finish) {                              // This part of the code is for displaying the result
     delay(500);                                   // Half second delay
     rep += 1;                                     // Increasing the repetition indicator
-    updateAngle();
 
     Serial.println("Shaft position from optical absolute sensor from home position: " + String(current_angle - home_angle));
     Serial.println("Shaft displacement from optical absolute sensor: " + String(current_angle - zero_angle));
-    Serial.println("Shaft displacement from motor's builtin encoder: " + String(abs(Error)));
     
-    Error = 0 - s / ENCODER_CONVERSION;     // Calculate encoder
-    Serial.println("Error: " + String(Error) + "\n");
+    error = 0 - s / encoder_conversion;           // Calculate encoder
+    Serial.println("Shaft displacement from motor's builtin encoder: " + String(abs(error)));
+    Serial.println("Error: " + String(error) + "\n");
+    
     s, finish = 0;                                // Reset encoder counts and finsh
     zero_angle = current_angle;                   // Set zero angle to the current angle 
   }
