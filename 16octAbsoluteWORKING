@@ -15,14 +15,12 @@ int rep = 1;     //Repetition indicator
 
 // Defining analog pins
 float voltageThreshold0 = 1.00;  //2
-float voltageThreshold1= 1.80;
+float voltageThreshold1 = 1.80;
 float voltageThreshold2 = 1.00;
-float voltageThreshold3 = 0.80;  //2
+float voltageThreshold3 = 1.50;  //2
 float voltageThreshold4 = 1.80;
 
-
-
-int tr_one = A0;               // Most significant bit
+int tr_one = A0;  // Most significant bit
 int tr_two = A1;
 int tr_three = A2;
 int tr_four = A3;
@@ -47,9 +45,12 @@ bool bit_five = true;
 int decimal_position;
 double angle;
 
-double home_angle;
-double zero_angle;
-double current_angle;
+double home_angle = 0;
+double prev_angle = 0;
+double current_angle = 0;
+double angle_change = 0;
+
+double Error;
 
 int gray;
 
@@ -80,7 +81,28 @@ void updateAngle() {
   bit_five = (state_five ^ bit_four);
 
   decimal_position = (bit_five + bit_four * 2 + bit_three * 4 + bit_two * 8 + bit_one * 16);
+
   angle = decimal_position * (360.0 / 32.0);
+  angle_change = angle - prev_angle;
+
+  // Serial.print("angle: ");
+  // Serial.println(angle);
+
+  // Serial.print("prev angle: ");
+  // Serial.println(prev_angle);
+
+  //   Serial.print("angle_change: ");
+  // Serial.println(angle_change);
+
+  if (fabs(angle_change) > 120) {
+    Serial.print("Overflow! ");
+    // Serial.println(angle_change);
+    if (angle_change < 0) {
+      angle_change += 360;
+    } else {
+      angle_change -= 360;
+    }
+  }
 
   gray = (state_five + state_four * 2 + state_three * 4 + state_two * 8 + state_one * 16);
 }
@@ -92,9 +114,9 @@ void setup() {
   Serial.println("Enter the desired rotation in degree.");
 
   updateAngle();
-  home_angle, zero_angle = angle;
+  home_angle, prev_angle = angle;
 
-  while (Serial.available()== 0)  //Obtaining data from user
+  while (Serial.available() ==0 )  //Obtaining data from user
   {
     //Wait for user input
   }
@@ -119,8 +141,8 @@ void loop() {
 
 
   // // float voltageThreshold = 0.80;  //2
-  // voltage_one = analogToVoltage(analogRead(A2));
-  // state_one = (voltage_one > voltageThreshold2);
+  // voltage_one = analogToVoltage(analogRead(A3));
+  // state_one = (voltage_one > voltageThreshold3);
   // Serial.print("State: ");
   // Serial.println(state_one);
   // }
@@ -224,26 +246,32 @@ void loop() {
     updateAngle();
     current_angle = angle;
 
-
+    if(angle_change < 0) {
+      Serial.println("Direction: CW");
+    } else {
+      Serial.println("Direction: CCW");
+    }
+    
     Serial.print("shaft possition from optical absolute sensor from home position: ");
     Serial.println(current_angle - home_angle);
 
     Serial.print("shaft displacement from optical absolute sensor: ");
-    Serial.println(current_angle - zero_angle);
+    Serial.println(fabs(angle_change));
+    //Serial.println(fabs(current_angle - prev_angle));
 
     Serial.print("Shaft displacement from motor's builtin encoder: ");
     Serial.println(s * 360 / 228);  //every full Revolution of the shaft is associated with 228 counts of builtin
                                     //encoder so to turn it to degre we can use this formula (s * 360 / 228), "s" is the number of  built-in encoder counts
 
-    float Error = (current_angle - zero_angle) - s * 360 / 228;
+    Error = fabs(angle_change) - s * 360 / 228;
+    //Error = fabs(current_angle - prev_angle) - s * 360 / 228;
     Serial.print("Error :");
     Serial.println(Error);  //displaying error
     Serial.println();
     s = 0;
     finish = 0;
 
-
-    zero_angle = angle;
+    prev_angle = angle;
   }
   analogWrite(6, 0);  //turning off the motor
 }
