@@ -192,7 +192,7 @@ void loop() {
     Serial.println();
 
     // Store the error in the array
-    if (rep <= 10) {
+    if (rep <= 11) {
       errorArray[rep - 2] = fabs(Error);  // rep starts from 2 here, so index is rep - 2
     }
 
@@ -222,6 +222,10 @@ void loop() {
     }
     double averageError = sum / 8.0;
 
+    Serial.print("All Errors: ");
+    for (int i = 0; i < (sizeof(errorArray)/sizeof(errorArray[0])); i++) { Serial.print(String(errorArray[i]) + " ");}
+
+    Serial.println();
     Serial.print("Average of the lowest 8 errors: ");
     Serial.println(averageError);
 
