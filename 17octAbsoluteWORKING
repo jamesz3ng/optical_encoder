@@ -1,23 +1,23 @@
+// Global variables and constants
 float deg = 45;  // Rotation degree
-float s = 0;     //Encoder counts
-int sm1 = 0;     //Built-in chanel 1
-int sm2 = 0;     //Built-in chanel 2
-int r = 0;       //indicator for reading builtin encoder to avoid the reading redundancy
-float er;        //Proportional error for PI controller
-float eri;       //Integral error for PI controller
+float s = 0;     // Encoder counts
+int sm1 = 0;     // Built-in channel 1
+int sm2 = 0;     // Built-in channel 2
+int r = 0;       // Indicator for reading built-in encoder to avoid reading redundancy
+float er;        // Proportional error for PI controller
+float eri;       // Integral error for PI controller
 
-int t = 0;   //time in ms
-int t0 = 0;  //memory for time in ms
+int t = 0;   // Time in ms
+int t0 = 0;  // Memory for time in ms
 
+int finish = 0;  // Finish indicator
+int rep = 1;     // Repetition indicator
 
-int finish = 0;  //finish indicator
-int rep = 1;     //Repetition indicator
-
-// Defining analog pins
-float voltageThreshold0 = 1.00;  //2
+// Defining analog pins and thresholds
+float voltageThreshold0 = 1.00;
 float voltageThreshold1 = 1.80;
 float voltageThreshold2 = 1.00;
-float voltageThreshold3 = 1.50;  //2
+float voltageThreshold3 = 1.50;
 float voltageThreshold4 = 1.80;
 
 int tr_one = A0;  // Most significant bit
@@ -52,7 +52,8 @@ double angle_change = 0;
 
 double Error;
 
-int gray;
+// New global array to store error values
+double errorArray[10];  // Assuming a maximum of 10 repetitions
 
 float analogToVoltage(float analogReading) {
   float volts = (analogReading) * (5.0 / 1023.0);
@@ -76,13 +77,13 @@ void updateAngle() {
   voltage_four = analogToVoltage(analogReadAvg(tr_four));
   voltage_five = analogToVoltage(analogReadAvg(tr_five));
 
-  // Grey code
+  // Gray code to binary conversion
   state_one = (voltage_one > voltageThreshold0);
   state_two = (voltage_two > voltageThreshold1);
   state_three = (voltage_three > voltageThreshold2);
   state_four = (voltage_four > voltageThreshold3);
   state_five = (voltage_five > voltageThreshold4);
-  // Get binary
+
   bit_one = state_one;
   bit_two = (state_two ^ bit_one);
   bit_three = (state_three ^ bit_two);
@@ -94,129 +95,45 @@ void updateAngle() {
   angle = decimal_position * (360.0 / 32.0);
   angle_change = angle - prev_angle;
 
-  // Serial.print("angle: ");
-  // Serial.println(angle);
-
-  // Serial.print("prev angle: ");
-  // Serial.println(prev_angle);
-
-  //   Serial.print("angle_change: ");
-  // Serial.println(angle_change);
-
   if (fabs(angle_change) > 120) {
     Serial.print("Overflow! ");
-    // Serial.println(angle_change);
     if (angle_change < 0) {
       angle_change += 360;
     } else {
       angle_change -= 360;
     }
   }
-
-  // gray = (state_five + state_four * 2 + state_three * 4 + state_two * 8 + state_one * 16);
 }
 
-
 void setup() {
-
-  Serial.begin(250000);  //Baud rate of communication
-  Serial.println("Enter the desired rotation in degree.");
+  Serial.begin(250000);  // Baud rate of communication
+  Serial.println("Enter the desired rotation in degrees.");
 
   updateAngle();
-  home_angle, prev_angle = angle;
+  home_angle = angle;
+  prev_angle = angle;
   Serial.println(angle);
-  while (Serial.available() ==0 )  //Obtaining data from user
-  {
-    //Wait for user input
+
+  while (Serial.available() == 0) {
+    // Wait for user input
   }
 
-  deg = Serial.readString().toFloat();  //Reading the Input string from Serial port.
+  deg = Serial.readString().toFloat();  // Reading the input string from Serial port
   if (deg < 0) {
-    analogWrite(3, 255);  //change the direction of rotation by applying voltage to pin 3 of arduino
+    analogWrite(3, 255);  // Change the direction of rotation by applying voltage to pin 3
   }
   deg = abs(deg);
 }
 
-
-float kp = .6 * 90 / deg;  //proportional gain of PI
-float ki = .02;            //integral gain of PI
-
+float kp = .6 * 90 / deg;  // Proportional gain of PI controller
+float ki = .02;            // Integral gain of PI controller
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  t = millis();                       // Reading time
+  t0 = t;                             // Saving the current time in memory
+  while (t < t0 + 4000 && rep <= 10) {  // Let the code run for 4 seconds with 10 repetitions
 
-  // while(1) {
-
-
-
-  // // float voltageThreshold = 0.80;  //2
-  // voltage_one = analogToVoltage(analogRead(A3));
-  // state_one = (voltage_one > voltageThreshold3);
-  // Serial.print("State: ");
-  // Serial.println(state_one);
-  // }
-
-
-  //random test
-  // updateAngle();
-  // Serial.print("Angle:  ");
-  // Serial.println(angle);
-  // //Serial.println(char(167));
-  // double previous_angle = angle;
-  // while (1) {
-  //   updateAngle();
-  //   if (previous_angle != angle) {
-  //     Serial.print("Angle:  ");
-  //     Serial.println(angle);
-  //     //Serial.println(char(167));
-  //     previous_angle = angle;
-  //   }
-  //   delay(2);
-  // }
-  // updateAngle();
-  // Serial.print("decimal:  ");
-  // Serial.println(decimal_position);
-  // //Serial.println(char(167));
-  // int previous_dec = decimal_position;
-  // while (1) {
-  //   updateAngle();
-  //   if (previous_dec != decimal_position) {
-  //     Serial.print("decimal:  ");
-  //     Serial.println(decimal_position);
-  //     //Serial.println(char(167));
-  //     previous_dec = decimal_position;
-  //   }
-  //   delay(2);
-  // }
-
-  // updateAngle();
-  // Serial.print("gray code:  ");
-  // Serial.println(gray);
-
-  // int previous_gray = gray;
-  // while (1) {
-  //   updateAngle();
-  //   if (previous_gray != gray) {
-  //     // Serial.print("gray code:  ");
-  //     // Serial.println(gray);
-  //     // Serial.println("");
-  //     Serial.print(state_one);
-  //     Serial.print(state_two);
-  //     Serial.print(state_three);
-  //     Serial.print(state_four);
-  //     Serial.println(state_five);
-  //     previous_gray = gray;
-  //   }
-  //   delay(2);
-  // }
-
-  t = millis();                       //reading time
-  t0 = t;                             //sving the current time in memory
-  while (t < t0 + 4000 && rep <= 10)  //let the code to ran for 4 seconds each with repetitions of 10
-  {
-
-    if (t % 10 == 0)  //PI controller that runs every 10ms
-    {
+    if (t % 10 == 0) {  // PI controller that runs every 10ms
       if (s < deg * 114 * 2 / 360) {
         er = deg - s * 360 / 228;
         eri = eri + er;
@@ -230,67 +147,89 @@ void loop() {
       delay(1);
     }
 
-    sm1 = digitalRead(7);  //reading chanel 1
-    sm2 = digitalRead(8);  //reading chanel 2
+    sm1 = digitalRead(7);  // Reading channel 1
+    sm2 = digitalRead(8);  // Reading channel 2
 
-
-    if (sm1 != sm2 && r == 0) {  //counting the number changes for both chanels
+    if (sm1 != sm2 && r == 0) {
       s = s + 1;
-      r = 1;  // this indicator wont let this condition, (sm1 != sm2), to be counted until the next condition, (sm1 == sm2), happens
+      r = 1;
     }
     if (sm1 == sm2 && r == 1) {
       s = s + 1;
-      r = 0;  // this indicator wont let this condition, (sm1 == sm2), to be counted until the next condition, (sm1 != sm2), happens
+      r = 0;
     }
 
-
-    t = millis();  //updating time
-    finish = 1;    //cghanging finish indicator
+    t = millis();  // Updating time
+    finish = 1;    // Changing finish indicator
   }
 
-  if (finish == 1) {  //this part of the code is for displaying the result
-    delay(500);       //half second delay
-    rep = rep + 1;    // increasing the repetition indicator
+  if (finish == 1) {  // This part of the code is for displaying the result
+    delay(500);       // Half-second delay
+    rep = rep + 1;    // Increasing the repetition indicator
 
     updateAngle();
 
-    // angle_change = angle - prev_angle;
-
-    // if (angle_change > 180.0) {
-    //   angle_change -= 360.0;
-    // } else if (angle_change < -180.0) {
-    //   angle_change += 360.0;
-    // }
-
     current_angle = angle;
 
-
-    if(angle_change < 0) {
+    if (angle_change < 0) {
       Serial.println("After Direction: CW");
     } else {
       Serial.println("After Direction: CCW");
     }
-    
-    Serial.print("shaft possition from optical absolute sensor from home position: ");
+
+    Serial.print("Shaft position from optical absolute sensor from home position: ");
     Serial.println(current_angle - home_angle);
 
-    Serial.print("shaft displacement from optical absolute sensor: ");
+    Serial.print("Shaft displacement from optical absolute sensor: ");
     Serial.println(fabs(angle_change));
-    //Serial.println(fabs(current_angle - prev_angle));
 
-    Serial.print("Shaft displacement from motor's builtin encoder: ");
-    Serial.println(s * 360 / 228);  //every full Revolution of the shaft is associated with 228 counts of builtin
-                                    //encoder so to turn it to degre we can use this formula (s * 360 / 228), "s" is the number of  built-in encoder counts
+    Serial.print("Shaft displacement from motor's built-in encoder: ");
+    Serial.println(s * 360 / 228);  // Converting counts to degrees
 
     Error = fabs(angle_change) - s * 360 / 228;
-    //Error = fabs(current_angle - prev_angle) - s * 360 / 228;
-    Serial.print("Error :");
-    Serial.println(Error);  //displaying error
+    Serial.print("Error: ");
+    Serial.println(Error);  // Displaying error
     Serial.println();
+
+    // Store the error in the array
+    if (rep <= 10) {
+      errorArray[rep - 2] = fabs(Error);  // rep starts from 2 here, so index is rep - 2
+    }
+
     s = 0;
     finish = 0;
 
     prev_angle = angle;
   }
-  analogWrite(6, 0);  //turning off the motor
+
+  // After all repetitions, calculate and print the average of the lowest 8 errors
+  if (rep > 10) {
+    // Sort the errorArray to find the lowest 8 errors
+    for (int i = 0; i < 9; i++) {
+      for (int j = i + 1; j < 10; j++) {
+        if (errorArray[i] > errorArray[j]) {
+          double temp = errorArray[i];
+          errorArray[i] = errorArray[j];
+          errorArray[j] = temp;
+        }
+      }
+    }
+
+    // Calculate the average of the lowest 8 errors
+    double sum = 0;
+    for (int i = 0; i < 8; i++) {
+      sum += errorArray[i];
+    }
+    double averageError = sum / 8.0;
+
+    Serial.print("Average of the lowest 8 errors: ");
+    Serial.println(averageError);
+
+    // Prevent the loop from running again
+    while (true) {
+      analogWrite(6, 0);  // Ensure the motor is off
+    }
+  }
+
+  analogWrite(6, 0);  // Turning off the motor
 }
