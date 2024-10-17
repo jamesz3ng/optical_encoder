@@ -23,8 +23,8 @@ int quadRepeat = 0;
 
 int channelA = A1;
 int channelB = A3;
-float voltageThreshold = 0.85; //1.00;
-float voltageThresholdB = 1.9;
+float voltageThreshold = 1.80; //1.00;
+float voltageThresholdB = 1.50;
 bool stateA = true;
 bool stateB = true;
 bool prevStateB = true;
