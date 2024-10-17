@@ -54,18 +54,27 @@ double Error;
 
 int gray;
 
-
 float analogToVoltage(float analogReading) {
   float volts = (analogReading) * (5.0 / 1023.0);
   return volts;
 }
 
+float analogReadAvg(int pin){
+  float total = 0;
+  const int samples = 10;
+  for(int i = 0; i < samples; i++){
+    total += analogRead(pin);
+    delayMicroseconds(50);
+  }
+  return total/samples;
+}
+
 void updateAngle() {
-  voltage_one = analogToVoltage(analogRead(tr_one));
-  voltage_two = analogToVoltage(analogRead(tr_two));
-  voltage_three = analogToVoltage(analogRead(tr_three));
-  voltage_four = analogToVoltage(analogRead(tr_four));
-  voltage_five = analogToVoltage(analogRead(tr_five));
+  voltage_one = analogToVoltage(analogReadAvg(tr_one));
+  voltage_two = analogToVoltage(analogReadAvg(tr_two));
+  voltage_three = analogToVoltage(analogReadAvg(tr_three));
+  voltage_four = analogToVoltage(analogReadAvg(tr_four));
+  voltage_five = analogToVoltage(analogReadAvg(tr_five));
 
   // Grey code
   state_one = (voltage_one > voltageThreshold0);
@@ -104,18 +113,18 @@ void updateAngle() {
     }
   }
 
-  gray = (state_five + state_four * 2 + state_three * 4 + state_two * 8 + state_one * 16);
+  // gray = (state_five + state_four * 2 + state_three * 4 + state_two * 8 + state_one * 16);
 }
 
 
 void setup() {
 
-  Serial.begin(115200);  //Baud rate of communication
+  Serial.begin(250000);  //Baud rate of communication
   Serial.println("Enter the desired rotation in degree.");
 
   updateAngle();
   home_angle, prev_angle = angle;
-
+  Serial.println(angle);
   while (Serial.available() ==0 )  //Obtaining data from user
   {
     //Wait for user input
@@ -244,12 +253,22 @@ void loop() {
     rep = rep + 1;    // increasing the repetition indicator
 
     updateAngle();
+
+    // angle_change = angle - prev_angle;
+
+    // if (angle_change > 180.0) {
+    //   angle_change -= 360.0;
+    // } else if (angle_change < -180.0) {
+    //   angle_change += 360.0;
+    // }
+
     current_angle = angle;
 
+
     if(angle_change < 0) {
-      Serial.println("Direction: CW");
+      Serial.println("After Direction: CW");
     } else {
-      Serial.println("Direction: CCW");
+      Serial.println("After Direction: CCW");
     }
     
     Serial.print("shaft possition from optical absolute sensor from home position: ");
