@@ -1,3 +1,6 @@
-# mecheng306_encoder_project
 
-Project 2
+# Optical Encoders
+
+## Quadrature Encoder
+
+## Absolute Encoder
